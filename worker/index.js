@@ -72,8 +72,33 @@ function placeOrder(state,user,input){
   state.orders.unshift(...orders);
   return orders.map(o=>o.id);
 }
+const reviewPages=new Set(['storefront.html','product.html','checkout.html','account.html','workflow.html','analysis.html','index.html']);
+const reviewAssets=new Set(['shop.css','shop.js','catalog.js','cart.js','analysis.js','mock-orders.js','review.js']);
+const reviewNotice='<div id="review-notice" style="position:relative;z-index:5;background:#122d22;color:white;padding:10px 4%;display:flex;gap:12px 18px;flex-wrap:wrap;align-items:center;font:15px system-ui,sans-serif"><strong>团队评审版</strong><a data-review-home href="storefront.html" style="color:#abf2ce">商城</a><a href="workflow.html" style="color:#abf2ce">运营工作台</a><a href="analysis.html?tab=overview" style="color:#abf2ce">经营看板</a><small style="color:#fff">免登录 · 样例数据 · 修改仅保存在当前浏览器，请使用测试资料</small></div><script src="review.js"></script>';
+function reviewRoute(request,url){
+  if(request.method!=='GET'&&request.method!=='HEAD')return new Response('Method not allowed',{status:405});
+  const file=url.pathname.slice('/review/'.length);
+  if(!file||file==='index.html')return Response.redirect(new URL('/review/storefront.html',url),302);
+  if(!reviewPages.has(file)&&!reviewAssets.has(file))return new Response('Not found',{status:404});
+  const original=assets['/'+file];
+  if(original===undefined)return new Response('Not found',{status:404});
+  let body=original.replace(/commerce-(?:cart-v1|instant-cart-v1|mock-orders-v1|workflow-v1|ad-data-v1|stock-notes-v1|language|delivery-country|currency)/g,key=>key.replace('commerce-','sf-review-'));
+  if(file.endsWith('.html')){
+    body=body.replace(/<main\b/,reviewNotice+'<main');
+    if(file==='workflow.html')body=body.replace('商品、经营日数据和订单保存到服务端','商品、经营日数据和订单仅保存在当前浏览器');
+    if(file==='analysis.html'){
+      body=body.replace('本地运营数据','当前浏览器评审数据')
+        .replace(/<a href="\/signout-with-chatgpt[^"]*"[^>]*>退出<\/a>/,'')
+        .replace('</style>','@media(min-width:641px){header{top:86px}}</style>');
+    }
+  }
+  const type=file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html';
+  return new Response(request.method==='HEAD'?null:body,{headers:{'content-type':type+'; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
+}
 async function route(request,env){
   const url=new URL(request.url), path=url.pathname;
+  if(path==='/review')return Response.redirect(new URL('/review/storefront.html',url),302);
+  if(path.startsWith('/review/'))return reviewRoute(request,url);
   const user=request.headers.get('oai-authenticated-user-id'), email=request.headers.get('oai-authenticated-user-email');
   const admin=!!(user&&email&&env.COMMERCE_ADMIN_EMAIL&&email.toLowerCase()===env.COMMERCE_ADMIN_EMAIL.toLowerCase());
   if(!validPath(path)){

@@ -1,4 +1,5 @@
 async function commerceApi(path, options={}){
+  if(location.pathname.startsWith('/review/'))return globalThis.reviewCommerceApi(path,options);
   const response=await fetch('/api/'+path,{
     method:options.method||'GET',credentials:'same-origin',
     headers:options.body?{'content-type':'application/json'}:{},

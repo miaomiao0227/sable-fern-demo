@@ -1,5 +1,5 @@
-# Sable & Fern
+# Sable & Fern team review
 
-Cross-border storefront and operations demo with simulated COD. Use sample customer details.
+No-login storefront and operations review using browser-local sample data.
 
-[Live demo](https://global-commerce-ops-honor.freshlilac8.chatgpt.site/storefront.html) · [Cloudflare Pages deployment guide](cloudflare/README.md)
+[Cloudflare Pages setup](cloudflare/REVIEW-PAGES.md)
