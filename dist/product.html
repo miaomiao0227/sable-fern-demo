@@ -1,0 +1,117 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>商品详情 · Sable &amp; Fern</title><link rel="stylesheet" href="shop.css">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f8f6ef;color:#202a1a;font:16px system-ui,sans-serif}main{max-width:1240px;margin:auto;padding:24px 5% 55px}header{border-bottom:1px solid #cbd2bf;padding-bottom:17px;margin-bottom:30px}a{color:#365736;text-underline-offset:4px}.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,5vw,72px)}.stage{display:grid;place-items:center;aspect-ratio:4/3;background:#e6eadb;overflow:hidden}.stage img{width:100%;height:100%;object-fit:contain}.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.thumbs button{width:74px;height:64px;padding:3px;background:#fffdf6;border:1px solid #9da99a}.thumbs button[aria-pressed=true]{outline:2px solid #365736}.thumbs img{width:100%;height:100%;object-fit:cover}h1{font-size:clamp(30px,4vw,54px);line-height:1.12;margin:12px 0}h2{font-size:19px;margin-top:25px}.meta,small{color:#526048}.price{font-size:28px;color:#365736;font-weight:700}.prose{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75}form{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:21px 0}input,button{font:inherit;padding:9px;border:1px solid #6c8065;border-radius:5px}input{width:72px}button{cursor:pointer;background:#28472c;color:white}button:disabled{opacity:.6}[hidden]{display:none}@media(max-width:720px){.layout{grid-template-columns:1fr}}
+.layout{position:relative;align-items:start;gap:clamp(20px,4.5vw,62px)}.stage{position:relative;background:#fff;border:1px solid #d8ded3;border-radius:8px;cursor:zoom-in}.stage img{display:block}.zoom-lens{position:absolute;width:32%;height:32%;pointer-events:none;background:#69a58045;border:1px solid #437653;transform:translate(-50%,-50%)}.zoom-preview{position:absolute;right:0;top:0;width:calc(48% - 16px);aspect-ratio:4/3;overflow:hidden;z-index:2;border:1px solid #b7c8bb;background:white;box-shadow:0 10px 24px #17282030;pointer-events:none;border-radius:8px}.zoom-preview img{width:100%;height:100%;object-fit:contain}.buy-now{background:#28472c;color:white}.add-cart{background:#fffdf6;color:#28472c}.photo-dialog{padding:15px;width:min(92vw,1000px);max-height:93vh;background:#fffdf6;border:1px solid #9da99a;border-radius:8px}.photo-dialog img{display:block;width:100%;height:min(75vh,720px);object-fit:contain}.photo-dialog form{margin:0;justify-content:flex-end}.product-extra{grid-column:1/-1;border-top:1px solid #ced8ca;padding-top:10px}.zoom-trigger{margin-top:10px;background:#fffdf6;color:#28472c}@media(max-width:720px){.zoom-preview,.zoom-lens{display:none!important}}
+</style>
+<main><header class="shop-nav" id="shop-nav"></header><p><a id="back" href="storefront.html">返回商城</a></p><p id="missing" role="status" hidden>该商品当前不可浏览。请返回商城选择其他商品。</p><div class="layout" id="product"><div><div class="stage" id="stage"></div><button type="button" class="zoom-trigger" id="zoom-trigger">放大图片</button><div class="thumbs" id="thumbs" aria-label="商品图片"></div></div><div>
+<div class="meta" id="meta"></div><h1 id="name"></h1><div class="price" id="price"></div><p class="prose" id="description"></p>
+
+<div id="variants"></div><form id="purchase"><label>数量 <input name="quantity" type="number" min="1" max="99" value="1" required></label><button type="submit" class="buy-now" id="buy-now" value="direct">立即购买</button><button type="submit" class="add-cart" id="add-cart" value="cart">加入购物车</button></form><small>展示店铺 · 模拟下单不收款</small><p id="status" role="status"></p></div><div class="zoom-preview" id="zoom" aria-hidden="true" hidden><img alt="" id="zoom-photo"></div><div class="product-extra"><section id="spec-section"><h2>规格与包装</h2><div class="prose" id="specs"></div></section><section id="fulfillment-section"><h2>配送与售后</h2><div class="prose" id="fulfillment"></div></section></div></div><dialog class="photo-dialog" id="photo-dialog"><form method="dialog"><button>关闭</button></form><img id="full-photo" alt=""></dialog></main>
+<script src="catalog.js"></script><script src="cart.js"></script><script src="shop.js"></script><script type="module">
+const el=id=>document.getElementById(id);
+const query=new URLSearchParams(location.search), market=deliveryCountry(), sku=query.get('sku');
+initShopNav(); await loadSharedCatalog(); const raw=listedProducts(market).find(item=>item.sku===sku); const product=raw&&translatedProduct(raw);
+
+if(!product){el('product').hidden=true;el('missing').hidden=false;el('missing').textContent=phrase(market?'此商品暂不配送到你选择的国家。':'请在顶部选择收货地址所在的国家，以查看可购买的商品。');}else{
+  commerceApi('session').then(session=>{
+    if(session.signedIn)return commerceApi('product-visit',{method:'POST',body:{market,sku}});
+  }).catch(()=>{});
+  document.title=product.name+' · '+translate("shop");
+  el('meta').textContent=translate("shop")+' · '+product.sku+(product.reference?' · 参考摄影':'');
+  el('name').textContent=product.name;
+  el('price').textContent=displayMoney(product.price);
+  el('description').textContent=product.description||'暂无商品描述。';
+  el('specs').textContent=product.specs||(product.reference?'此商品为样例。型号、尺寸、材料和包装内容须以实际供货资料为准。':'');
+  el('fulfillment').textContent=product.fulfillment||(product.reference?'示例市场：'+market+'。实际运费、配送时效与退换条款以正式上架信息为准。':'');
+  el('spec-section').hidden=!el('specs').textContent;
+  el('fulfillment-section').hidden=!el('fulfillment').textContent;
+  const images=productImages(product);
+  const stage=el('stage'), zoom=el('zoom'), zoomPhoto=el('zoom-photo');
+  const lens=document.createElement('span');lens.className='zoom-lens';lens.hidden=true; lens.setAttribute('aria-hidden','true');
+  let activePhoto=0;
+  function closeZoom(){zoom.hidden=true;lens.hidden=true;}
+  function showFull(){
+    if(!images.length)return;
+    const full=el('full-photo');full.src=images[activePhoto];full.alt=product.name;
+    el('photo-dialog').showModal();
+  }
+  el('zoom-trigger').hidden=!images.length;
+  el('zoom-trigger').onclick=showFull;
+  stage.onclick=showFull;
+  stage.onpointerleave=closeZoom;
+  stage.onpointermove=event=>{
+    if(event.pointerType==='touch'||innerWidth<=720)return;
+    const img=stage.querySelector('img'), rect=stage.getBoundingClientRect();
+    if(!img?.naturalWidth)return;
+    const scale=Math.min(rect.width/img.naturalWidth,rect.height/img.naturalHeight);
+    const width=img.naturalWidth*scale,height=img.naturalHeight*scale;
+    const x=event.clientX-rect.left,y=event.clientY-rect.top;
+    if(x<(rect.width-width)/2||x>(rect.width+width)/2||y<(rect.height-height)/2||y>(rect.height+height)/2){closeZoom();return;}
+    lens.style.left=x+'px';lens.style.top=y+'px';
+    zoomPhoto.style.transformOrigin=(100*x/rect.width)+'% '+(100*y/rect.height)+'%';
+    zoomPhoto.style.transform='scale(2.8)';
+    lens.hidden=false;zoom.hidden=false;
+  };
+  const show=index=>{
+    activePhoto=index;closeZoom();
+    const image=new Image();
+    image.alt=product.name+' · 图片 '+(index+1);
+    image.onerror=()=>{el('stage').textContent='图片暂不可用';};
+    stage.replaceChildren(image,lens);image.src=images[index];zoomPhoto.src=images[index];
+    for(const [i,button] of [...el('thumbs').children].entries())button.setAttribute('aria-pressed',String(i===index));
+  };
+  if(images.length){
+    if(images.length>1)images.forEach((url,index)=>{
+      const button=document.createElement('button');button.type='button';button.setAttribute('aria-label','查看图片 '+(index+1));
+      const image=new Image();image.alt='';image.loading='lazy';image.src=url;
+      button.append(image);button.onclick=()=>show(index);el('thumbs').append(button);
+    });
+    show(0);
+  }else el('stage').textContent='暂无图片';
+  let chosen=product.variants?.[0];
+  const add=el('add-cart'), buy=el('buy-now');
+  add.textContent=translate('buy');
+  buy.textContent={zh:'立即购买',en:'Buy now',fr:'Acheter maintenant'}[locale()];
+  el('zoom-trigger').textContent={zh:'放大图片',en:'Enlarge photo',fr:'Agrandir la photo'}[locale()];
+  function renderVariants(){
+    el('variants').replaceChildren();
+    if(!chosen)return;
+    for(const field of ['configuration','color']){
+      const label=document.createElement('strong');label.textContent=field==='configuration'&&product.sku.startsWith('SF-')?{zh:'大小',en:'Size',fr:'Taille'}[locale()]:translate(field==='configuration'?'config':'color');
+      const group=document.createElement('div');group.className='choice';group.setAttribute('role','group');group.setAttribute('aria-label',label.textContent);
+      for(const value of new Set(product.variants.map(v=>v[field]))){
+        const option=document.createElement('button');option.type='button';option.textContent=value;
+        option.setAttribute('aria-pressed',String(chosen[field]===value));
+        option.onclick=()=>{
+          const other=field==='color'?'configuration':'color';
+          chosen=product.variants.find(v=>v[field]===value&&v[other]===chosen[other])||product.variants.find(v=>v[field]===value);
+          renderVariants();
+        };
+        group.append(option);
+      }
+      el('variants').append(label,group);
+    }
+    el('price').textContent=displayMoney(chosen.price);
+    el('meta').textContent=translate("shop")+' · '+chosen.sku;
+    add.disabled=buy.disabled=chosen.inventory===0;
+  }
+  renderVariants();
+  el('purchase').onsubmit=event=>{
+    event.preventDefault();
+    const form=event.currentTarget,quantity=Number(form.elements.quantity.value);
+    if(!Number.isInteger(quantity)||quantity<1||quantity>99)return;
+    try{
+      if(event.submitter===buy){
+        beginInstantCheckout({market,sku,quantity,variant:chosen?.sku});
+        location.assign('checkout.html?mode=direct');
+        return;
+      }
+      addToCart(market,sku,quantity,chosen?.sku);
+      const link=document.createElement('a');link.href='checkout.html';link.textContent=phrase('查看购物车');
+      el('status').replaceChildren(phrase('已加入购物车。')+' ',link);
+    }catch(error){
+      el('status').textContent=error.message;
+    }
+  };
+}
+</script></html>

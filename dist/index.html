@@ -1,0 +1,113 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>跨境经营台</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0a101b;color:#e9f1ff;font:15px system-ui,"Microsoft YaHei",sans-serif}header{padding:20px 5%;border-bottom:1px solid #223149;display:flex;justify-content:space-between;align-items:center}strong{color:#55e1ce}main{max-width:1530px;margin:auto;padding:26px 4% 45px}h1{margin:0 0 6px;font-size:32px}p,small{color:#a0b1c9}p{margin:0 0 22px}.filters,.tabbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px}button,select,input{font:inherit;color:inherit;border:1px solid #304259;background:#142135;border-radius:8px;padding:8px 12px}button,select{cursor:pointer}button:hover,.active{border-color:#54daca;color:#6ce9d8}.primary{background:#62ddc9;color:#092521;border-color:#62ddc9;font-weight:700}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:15px}.card,section{background:#111c2e;border:1px solid #23344c;border-radius:12px}.card{padding:15px}.card b{display:block;font-size:25px;margin-top:8px;font-variant-numeric:tabular-nums}section{padding:17px;margin-bottom:15px}h2{font-size:17px;margin:0}.split{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}.chart{display:block;width:100%;height:240px;margin-top:10px}.scroll{overflow:auto;margin-top:12px}table{width:100%;border-collapse:collapse;white-space:nowrap;font-variant-numeric:tabular-nums}th,td{text-align:right;padding:11px;border-bottom:1px solid #24344b}th{color:#a0b1c9;cursor:pointer}th:first-child,td:first-child{text-align:left}tbody tr:hover{background:#172842}.neg{color:#ff9ba6}.pos{color:#6ce9bc}@media(max-width:600px){h1{font-size:26px}.chart{height:190px}}
+</style>
+<header><strong>◈　跨境经营台</strong><a href="workflow.html" style="color:#6ce9d8">商品运营工作台</a><a href="storefront.html" style="color:#6ce9d8">独立站商城</a><a href="analysis.html" style="color:#6ce9d8">现货经营分析</a><small>演示数据 · USD</small></header>
+<main><h1>国际电商经营看板</h1><p>按市场查看订单、货到付款签收、广告投入与商品利润。</p>
+<div class="filters"><select id="market" aria-label="市场"><option value="">全部市场</option><option>津巴布韦</option><option>肯尼亚</option><option>坦桑尼亚</option></select><select id="days" aria-label="统计周期"><option value="7">最近 7 天</option><option value="15">最近 15 天</option><option value="30">最近 30 天</option></select><input id="query" placeholder="搜索商品名称或 SKU" aria-label="搜索商品"></div>
+<div id="cards" class="cards"></div><section><div class="split"><h2>模拟订单</h2><a href="workflow.html#order-summary" style="color:#6ce9d8">处理订单</a></div><p id="mock-summary" style="margin:10px 0 0"></p></section>
+<section><div class="split"><h2>经营趋势</h2><select id="metric" aria-label="趋势指标"><option value="orders">订单量</option><option value="sales">签收收入</option><option value="ads">广告花费</option><option value="profit">毛利润</option></select></div><canvas id="chart" class="chart" role="img" aria-label="每日经营趋势"></canvas></section>
+<section><div class="split"><div><h2 id="detail">商品经营明细</h2><small id="count"></small></div><button id="export" class="primary">导出 CSV</button></div><div class="tabbar" style="margin-top:12px"><button class="active" data-mode="all">商品明细</button><button data-mode="profit">利润排行</button><button data-mode="stock">低库存预警</button></div><div class="scroll"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div></section>
+</main><script src="mock-orders.js"></script><script src="shop.js"></script><script type="module">
+const byId = id => document.getElementById(id);
+const markets = ['津巴布韦','肯尼亚','坦桑尼亚'];
+const catalog = [['无线耳机',29,14],['运动手表',39,6],['便携榨汁杯',25,32],['车载吸尘器',35,12],['太阳能庭院灯',24,4],['多功能切菜器',19,51],['迷你投影仪',85,17],['折叠收纳箱',22,9]];
+const today = new Date(2026,10,22);
+const number = new Intl.NumberFormat('zh-CN',{maximumFractionDigits:2});
+const money = value => '$' + number.format(value);
+const columns = [['name','商品'],['market','市场'],['orders','订单'],['signed','签收'],['rate','签收率'],['sales','签收收入'],['ads','广告费'],['cost','采购成本'],['ship','配送费'],['profit','毛利润'],['stock','库存']];
+let mode = 'all', sort = 'orders', direction = -1, visible = [], trend = [];
+function daily(day,index,region,price) {
+  const orders = (day*17 + index*11 + region*7 + Math.floor(day*day/5))%18 + 3;
+  const signed = Math.floor(orders*(0.48 + ((day+index+region)%5)*0.09));
+  const sales = signed*price;
+  const ads = (orders*(2.3 + (index%4)*0.7) + (day%4)*4);
+  const cost = signed*price*0.43, ship = orders*3.1;
+  return {orders,signed,sales,ads,cost,ship,profit:sales-ads-cost-ship};
+}
+const metrics = ['orders','signed','sales','ads','cost','ship','profit'];
+const empty = () => Object.fromEntries(metrics.map(key=>[key,0]));
+function add(target,source){for(const key of metrics)target[key]+=source[key];}
+function format(key,value){
+  if(['sales','ads','cost','ship','profit'].includes(key)) return money(value);
+  if(key==='rate') return number.format(value*100)+'%';
+  return typeof value==='number'?number.format(value):value;
+}
+function render(){
+  const days = Number(byId('days').value), query = byId('query').value.trim().toLowerCase(), selected = byId('market').value;
+  trend = Array.from({length:days},empty);
+  const total = empty(), products = [];
+  markets.forEach((market,region)=>{
+    if(selected && market!==selected)return;
+    catalog.forEach(([name,price,stock],index)=>{
+      const sku = 'GC-'+(101+index);
+      if(query && ![name,sku].some(value=>value.toLowerCase().includes(query)))return;
+      const product = {name:name+' · '+sku,market,stock:stock+region*3,...empty()};
+      trend.forEach((point,offset)=>{
+        const entry = daily(30-days+offset,index,region,price);
+        add(product,entry);add(point,entry);
+      });
+      product.rate = product.signed/product.orders;
+      add(total,product);products.push(product);
+    });
+  });
+  const stats=[['订单量',number.format(total.orders)],['签收订单',number.format(total.signed)],['签收率',format('rate',total.orders?total.signed/total.orders:0)],['签收收入',money(total.sales)],['广告投入',money(total.ads)],['毛利润',money(total.profit)],['利润率',format('rate',total.sales?total.profit/total.sales:0)]];
+  byId('cards').innerHTML=stats.map(([label,value])=>'<div class="card"><small>'+label+'</small><b>'+value+'</b></div>').join('');
+  visible=products.filter(row=>mode!=='stock'||row.stock<=10).sort((a,b)=>direction*(typeof a[sort]==='string'?a[sort].localeCompare(b[sort],'zh-CN'):a[sort]-b[sort]));
+  byId('detail').textContent={all:'商品经营明细',profit:'商品利润排行',stock:'低库存预警'}[mode];
+  byId('count').textContent='共 '+visible.length+' 条商品 / 市场记录'+(mode==='stock'?' · 库存 ≤ 10':'');
+  byId('head').innerHTML='<tr>'+columns.map(([key,label])=>'<th scope="col" aria-sort="'+(sort===key?(direction>0?'ascending':'descending'):'none')+'"><button data-sort="'+key+'">'+label+(sort===key?(direction>0?' ↑':' ↓'):'')+'</button></th>').join('')+'</tr>';
+  byId('rows').innerHTML=visible.map(row=>'<tr>'+columns.map(([key])=>'<td class="'+(key==='profit'?(row.profit<0?'neg':'pos'):'')+'">'+format(key,row[key])+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="11">当前筛选下没有记录</td></tr>';
+  drawChart();
+}
+function drawChart(){
+  const canvas=byId('chart'),ctx=canvas.getContext('2d'),w=canvas.clientWidth,h=canvas.clientHeight,ratio=devicePixelRatio||1;
+  canvas.width=w*ratio;canvas.height=h*ratio;ctx.scale(ratio,ratio);
+  const key=byId('metric').value, values=trend.map(point=>point[key]);
+  const left=68,bottom=h-28,step=(w-left-12)/values.length,max=Math.max(1,...values),min=Math.min(0,...values),y=value=>bottom-(bottom-14)*(value-min)/(max-min);
+  ctx.font='12px system-ui';ctx.textAlign='right';
+  for(let line=0;line<=4;line++){
+    const value=min+(max-min)*line/4, level=y(value);
+    ctx.strokeStyle='#29394f';ctx.beginPath();ctx.moveTo(left,level);ctx.lineTo(w-12,level);ctx.stroke();
+    ctx.fillStyle='#a0b1c9';ctx.fillText(number.format(Math.round(value)),left-8,level+4);
+  }
+  values.forEach((value,i)=>{
+    const x=left+step*(i+0.5),barWidth=Math.min(step*.66,70);
+    ctx.fillStyle=value<0?'#f4879a':'#46cbb8';
+    ctx.fillRect(x-barWidth/2,Math.min(y(value),y(0)),barWidth,Math.abs(y(value)-y(0)));
+    if(i%Math.ceil(values.length/(w<550?5:10))===0){
+      const date=new Date(today);date.setDate(date.getDate()-values.length+1+i);
+      ctx.fillStyle='#a0b1c9';ctx.textAlign='center';ctx.fillText((date.getMonth()+1)+'/'+date.getDate(),x,h-8);
+    }
+  });
+  canvas.setAttribute('aria-label',byId('metric').selectedOptions[0].text+'每日数据：'+values.map(value=>format(key,value)).join('、'));
+}
+['market','days','query'].forEach(id=>byId(id).addEventListener('input',render));
+byId('metric').addEventListener('change',drawChart);
+byId('head').addEventListener('click',event=>{
+  const key=event.target.dataset.sort;
+  if(!key)return;
+  direction=sort===key?-direction:-1;sort=key;render();
+  byId('head').querySelector('[data-sort='+key+']').focus();
+});
+document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{
+  mode=button.dataset.mode;sort={all:'orders',profit:'profit',stock:'stock'}[mode];direction=mode==='stock'?1:-1;
+  document.querySelectorAll('[data-mode]').forEach(tab=>tab.classList.toggle('active',tab===button));
+  render();
+}));
+byId('export').addEventListener('click',()=>{
+  const lines=[columns.map(([,label])=>label),...visible.map(row=>columns.map(([key])=>key==='rate'?(row.rate*100).toFixed(2)+'%':typeof row[key]==='number'?Number(row[key].toFixed(2)):row[key]))];
+  const blob=new Blob(['\uFEFF'+lines.map(line=>line.join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob), link=document.createElement('a');link.href=url;link.download='跨境商品经营明细.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+async function renderMockSummary(){
+  const {orders}=await commerceApi('admin/state');
+  const signed=orders.filter(order=>order.status==='signed');
+  const profit=signed.reduce((total,order)=>total+orderProfit(order),0);
+  byId('mock-summary').textContent='全部市场 · '+orders.length+' 笔订单 · '+signed.length+' 笔签收 · 签收利润 '+money(profit);
+}
+window.addEventListener('storage',event=>{if(event.key===mockOrderKey)renderMockSummary();});
+window.addEventListener('resize',drawChart);
+renderMockSummary();
+render();
+</script></html>

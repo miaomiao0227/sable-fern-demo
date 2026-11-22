@@ -1,0 +1,267 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>商品运营工作台</title>
+<style>
+*{box-sizing:border-box}body{background:#0a101b;color:#e9f1ff;font:16px system-ui,sans-serif;margin:0}main{max-width:1400px;margin:auto;padding:30px 5%}a{color:#6ce9d8}section{background:#111c2e;border:1px solid #23344c;border-radius:12px;padding:18px;margin:16px 0}h2{font-size:19px;margin:0 0 12px}p,small{color:#a0b1c9}form{display:flex;flex-wrap:wrap;gap:12px;align-items:end}label{display:grid;gap:5px;font-size:14px}input,select,button{font:inherit;color:inherit;background:#142135;border:1px solid #304259;border-radius:8px;padding:8px;max-width:100%}button{cursor:pointer;color:#6ce9d8}table{border-collapse:collapse;width:100%;white-space:nowrap}td,th{padding:10px;text-align:left;border-bottom:1px solid #23344c}.scroll{overflow:auto}
+textarea{font:inherit;width:100%;min-height:115px;resize:vertical;color:inherit;background:#142135;border:1px solid #304259;border-radius:8px;padding:10px}#product .wide{flex-basis:100%}#product-save{background:#70dfc9;color:#092420}body{background:#f2f5f1;color:#172820}main{max-width:1450px;padding:28px 5%}main>a{color:#27563c}h1{font-size:clamp(30px,4vw,46px);letter-spacing:-.045em;margin-bottom:5px}p,small{color:#43584b}section{background:#fff;border:1px solid #d5e0d7;border-radius:11px;padding:clamp(15px,2vw,26px);margin:18px 0}h2{margin-bottom:14px}input,select,textarea,button{background:#f9fbf8;color:#172820;border:1px solid #a9bbad;border-radius:6px}button{font-weight:600;color:#285843}button:hover{background:#e4efe6}#product-save{background:#285843;color:white}#product{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:15px;margin-top:18px}#product .wide{grid-column:1/-1}#product input,#product textarea,#product select{width:100%}#product input[type=checkbox]{width:auto}#product button{justify-self:start}#product textarea{min-height:90px}#product label,#day label{font-weight:600}#product label small{font-weight:400}#saved-gallery{display:flex;flex-wrap:wrap;gap:10px}#saved-gallery img{width:90px;height:70px;object-fit:cover;border-radius:5px}#saved-gallery button{display:block;margin-top:4px;padding:4px 8px;font-size:13px}th,td{border-color:#d5e0d7}th{background:#eaf0eb;color:#354e40}td a{color:#285843}input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #37845e;outline-offset:2px}nav.shortcuts{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}nav.shortcuts a{color:#285843;background:#e0ece2;padding:8px 12px;border-radius:6px;text-decoration:none}@media(max-width:720px){#product{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:440px){#product{grid-template-columns:1fr}}
+.delivery-markets{border:1px solid #a9bbad;border-radius:6px;display:flex;gap:16px;flex-wrap:wrap}.delivery-markets label{display:flex;align-items:center;gap:4px}.delivery-markets small{width:100%}</style><main><a href="analysis.html?tab=overview">经营看板</a><span>　·　</span><a href="storefront.html">打开模拟店铺</a><h1>商品运营工作台</h1><p>商品、经营日数据和订单保存到服务端 · 金额以 USD 录入</p>
+<nav class="shortcuts" aria-label="运营导航"><a href="#product-title">商品编辑</a><a href="#daily-entry">经营录入</a><a href="#order-summary">订单与签收</a><a href="analysis.html?tab=stock">现货分析</a></nav><section><button id="import-local" type="button">迁移本机旧商品与日数据</button></section><section><h2 id="product-title">添加商品</h2><p><button type="button" id="shopify">导出 Shopify 商品草稿 CSV</button></p><small>仅导出标记为待发布的商品。适用于默认币种为 USD 的测试店，导入后在 Shopify 核查草稿。</small><form id="product">
+<label>SKU<input name="sku" required maxlength="40"></label><label>商品名称<input name="name" required maxlength="100"></label><fieldset class="wide delivery-markets"><legend>可售国家</legend><label><input type="checkbox" name="saleCountries" value="津巴布韦"> 津巴布韦</label><label><input type="checkbox" name="saleCountries" value="肯尼亚"> 肯尼亚</label><label><input type="checkbox" name="saleCountries" value="坦桑尼亚"> 坦桑尼亚</label><small>顾客选择其中一个国家作为收货地后，即可查看和购买此商品。</small></fieldset><label>采购单价<input name="cost" type="number" min="0" step=".01" required></label><label>售价<input name="price" type="number" min=".01" step=".01" required></label><label>模拟总库存<input name="inventory" type="number" min="0" step="1" placeholder="留空则不限"><small>可售国家共用该 SKU 的库存。</small></label><label>分类<select name="category"><option value="tech">数码</option><option value="home">家居</option><option value="kitchen">厨房</option><option value="auto">车品</option></select></label><label class="wide">商品配置<textarea name="variants" placeholder="每行：配置SKU | 配置名称 | 颜色 | 售价USD | 库存"></textarea></label><label class="wide">商品图片链接<input type="url" name="image" maxlength="2048" placeholder="https://…"></label><label class="wide">上传商品图片<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" multiple><small>可一次选择多张。如果没有主图，首张上传图作为主图。支持 JPG、PNG、WebP，单张最大 500 KB。</small></label><div id="saved-gallery" class="wide" aria-label="已保存的图片"></div><label class="wide">详情图片链接<textarea name="galleryLinks" placeholder="每行一个 HTTPS 图片链接"></textarea></label><label class="wide">商品描述<textarea name="description" maxlength="2000" placeholder="填写商品特点、使用场景和规格"></textarea></label><label class="wide">规格与包装<textarea name="specs" maxlength="2000" placeholder="填写型号、尺寸、材质与包装内容"></textarea></label><label class="wide">配送与售后<textarea name="fulfillment" maxlength="2000" placeholder="填写配送范围、运费、时效和退换政策"></textarea></label><button id="product-save">加入候选池</button><button type="button" id="product-cancel" hidden>取消编辑</button></form></section>
+<section id="daily-entry"><h2>经营日数据</h2><form id="day">
+<label>商品<select name="sku" required></select></label><label>日期<input type="date" name="date" required></label><label>订单<input name="orders" type="number" min="0" value="0" required></label><label>入单<input name="confirmed" type="number" min="0" value="0" required></label><label>签收<input name="signed" type="number" min="0" value="0" required></label><label>签收货值<input name="revenue" type="number" min="0" step=".01" value="0" required></label><label>COD 实际回款<input name="cash" type="number" min="0" step=".01" value="0" required></label><label>广告费<input name="ads" type="number" min="0" step=".01" value="0" required></label><label>配送费<input name="shipping" type="number" min="0" step=".01" value="0" required></label><label>库存<input name="stock" type="number" min="0" value="0" required></label><button>保存当日数据</button></form><small>同一商品和日期再次保存会更新原记录。签收可以来自早期订单。</small></section>
+<p id="status" role="status"></p>
+<section><h2>商品经营明细</h2><form id="filter"><label>开始日期<input type="date" name="start"></label><label>结束日期<input type="date" name="end"></label><button type="button" id="csv">导出 CSV</button></form><div class="scroll"><table><thead id="header"></thead><tbody id="rows"></tbody></table></div><p id="notes"></p></section><section><h2>模拟订单与签收</h2><p id="order-summary" aria-live="polite"></p><small>仅汇总模拟订单。签收后计入销售收入，利润扣除商品采购成本和配送费。手工经营日数据独立统计。</small><div class="scroll"><table><thead><tr><th>订单</th><th>市场</th><th>商品</th><th>数量</th><th>订单金额</th><th>状态</th><th>签收利润</th><th>配送资料</th><th>操作</th></tr></thead><tbody id="order-rows"></tbody></table></div></section></main>
+<script src="mock-orders.js"></script><script src="catalog.js"></script><script src="shop.js"></script><script type="module">
+const el=id=>document.getElementById(id);
+const key='commerce-workflow-v1';
+const state=await commerceApi('admin/catalog');
+const fields=['orders','confirmed','signed','revenue','cash','ads','shipping','stock'];
+const headers=['SKU','商品','市场','上架准备','订单','入单','签收','签收货值','COD 回款','广告费','配送费','库存','经营利润'];
+let report=[]; let editingSku=null; let savedImages=[];
+async function save(message){
+  const saved=await commerceApi("admin/catalog",{method:"PUT",body:state});state.catalogRevision=saved.catalogRevision;
+  el('status').textContent=message;
+  render();
+}
+function render(){
+  const selector=el('day').elements.sku;
+  const selected=selector.value;
+  selector.replaceChildren(new Option('请选择商品',''),...state.products.map(p=>new Option(p.sku+' · '+p.name,p.sku)));
+  selector.value=selected;
+  const {start,end}=Object.fromEntries(new FormData(el('filter')));
+  report=state.products.map(p=>{
+    const days=state.days.filter(d=>d.sku===p.sku&&(!start||d.date>=start)&&(!end||d.date<=end)).sort((a,b)=>a.date.localeCompare(b.date));
+    const sum=field=>days.reduce((total,d)=>total+d[field],0);
+    const profit=days.reduce((total,d)=>total+d.revenue-d.signed*d.unitCost-d.ads-d.shipping,0);
+    return [p.sku,p.name,saleCountries(p).join("、"),p.listed?'模拟已上架':p.ready?'待发布':'候选',...fields.slice(0,-1).map(sum),days.at(-1)?.stock??'—',Number(profit.toFixed(2))];
+  });
+  el('rows').replaceChildren(...report.map((row,index)=>{
+    const tr=document.createElement('tr');
+    for(const value of row)tr.insertCell().textContent=value;
+    const p=state.products[index];
+    const action=document.createElement('button');
+    action.textContent=p.ready?'撤回准备':'标记待发布';
+    action.onclick=async()=>{p.ready=!p.ready;try{await save(p.ready?'已列入待发布清单。':'已退回候选池。');}catch(error){p.ready=!p.ready;el('status').textContent=error.message;}};
+    const listing=document.createElement('button');
+    listing.textContent=p.listed?'模拟下架':'模拟上架';
+    listing.onclick=async()=>{
+      p.listed=!p.listed;
+      try{await save(p.listed?'已上架，配送范围：'+saleCountries(p).join('、')+'。':'已从模拟店铺下架。');}catch(error){p.listed=!p.listed;el('status').textContent=error.message;}
+    };
+    const preview=document.createElement('a');
+    preview.href=p.listed?detailUrl(p.sku):'storefront.html';
+    preview.textContent=p.listed?'查看详情':'查看店铺';
+    const edit=document.createElement('button');edit.textContent='编辑';
+    edit.onclick=()=>{
+      const form=el('product');editingSku=p.sku;
+      for(const field of ['sku','name','cost','price','inventory','category','image','description','specs','fulfillment'])form.elements[field].value=p[field]??'';
+      for(const box of form.querySelectorAll('[name=saleCountries]'))box.checked=saleCountries(p).includes(box.value);
+      form.elements.variants.value=(p.variants||[]).map(v=>[v.sku,v.configuration,v.color,v.price,v.inventory].join(' | ')).join('\n'); form.elements.sku.readOnly=true; form.elements.image.value=''; savedImages=[p.image,...(p.gallery||[])].filter(Boolean); renderSavedImages();
+      el('product-title').textContent='编辑商品';
+      el('product-save').textContent='保存修改';
+      el('product-cancel').hidden=false;
+      form.elements.name.focus();
+    };
+    const controls=tr.insertCell();controls.append(edit,' ',action,' ',listing,' ',preview);
+    return tr;
+  }));
+  el('notes').textContent=report.length?'经营利润 = 签收货值 − 签收商品采购成本 − 广告费 − 配送费。COD 回款单列。':'暂无商品，请先加入候选池。';
+}
+const head=document.createElement('tr');
+for(const label of [...headers,'操作']){
+  const th=document.createElement('th');th.scope='col';th.textContent=label;head.append(th);
+}
+el('header').append(head);
+function renderSavedImages(){
+  el('saved-gallery').replaceChildren(...savedImages.map((url,index)=>{
+    const tile=document.createElement('div'), image=new Image(), remove=document.createElement('button');
+    image.alt=index===0?'当前主图':'详情图 '+index;image.src=url;
+    remove.type='button';remove.textContent=index===0?'移除主图':'移除图片';
+    remove.onclick=()=>{savedImages.splice(index,1);renderSavedImages();};
+    tile.append(image,remove);
+    return tile;
+  }));
+}
+function resetProductForm(){
+  savedImages=[];renderSavedImages();
+  editingSku=null;
+  const form=el('product');form.reset();form.elements.sku.readOnly=false;
+  el('product-title').textContent='添加商品';
+  el('product-save').textContent='加入候选池';
+  el('product-cancel').hidden=true;
+}
+el('product-cancel').onclick=resetProductForm;
+el('product').onsubmit=async event=>{
+  event.preventDefault();
+  const submitted=new FormData(event.currentTarget);
+  const p=Object.fromEntries(submitted);
+  p.saleCountries=submitted.getAll('saleCountries');
+  if(!p.saleCountries.length){el('status').textContent='请至少选择一个可售国家。';return;}
+  p.market=state.products.find(item=>item.sku===editingSku)?.market||p.saleCountries[0];
+  p.sku=p.sku.trim().toUpperCase();p.name=p.name.trim();p.cost=Number(p.cost);p.price=Number(p.price);p.inventory=p.inventory===""?null:Number(p.inventory);
+  if(!p.sku||!p.name||state.products.some(item=>item.sku===p.sku&&item.sku!==editingSku)){
+    el('status').textContent='请输入有效名称和未使用的 SKU。';return;
+  }
+  const extraLinks=p.galleryLinks.split(/\r?\n/).map(link=>link.trim()).filter(Boolean);
+  const links=[p.image.trim(),...extraLinks].filter(Boolean);
+  delete p.galleryLinks;
+  const validLink=value=>{try{return new URL(value).protocol==='https:';}catch{return false;}};
+  if(!links.every(validLink)){
+    el('status').textContent='请检查图片链接，每行填写一个有效的 HTTPS 地址。';return;
+  }
+  const files=[...event.currentTarget.elements.photo.files];
+  delete p.photo;
+  if(files.some(file=>!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>500000)){
+    el('status').textContent='每张图片须为 500 KB 以内的 JPG、PNG 或 WebP。';return;
+  }
+  if(savedImages.length+links.length+files.length>10){
+    el('status').textContent='每件商品最多保存 10 张图片。';return;
+  }
+  const existing=state.products.find(item=>item.sku===editingSku);
+  const initial=[...savedImages];
+  const controls=[el('product-save'),el('product-cancel')];
+  controls.forEach(control=>control.disabled=true);
+  let images;
+  try{
+    images=await Promise.all(files.map(file=>new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);
+    })));
+  }catch{
+    el('status').textContent='图片读取失败，请重新选择。';return;
+  }finally{controls.forEach(control=>control.disabled=false);}
+  const gallery=[...new Set([p.image.trim(),...initial,...images,...extraLinks].filter(Boolean))];
+  [p.image='',...p.gallery]=gallery;
+  const entries=p.variants.split(/\r?\n/).filter(line=>line.trim()).map(line=>line.split('|').map(field=>field.trim()));
+  if(entries.some(parts=>parts.length!==5||parts.some(part=>!part)||!Number.isFinite(Number(parts[3]))||Number(parts[3])<=0||!Number.isInteger(Number(parts[4]))||Number(parts[4])<0)){
+    el('status').textContent='请按每行五列填写配置、价格和库存。';return;
+  }
+  p.variants=entries.map(([sku,configuration,color,price,inventory])=>({sku:sku.toUpperCase(),configuration,color,price:Number(price),inventory:Number(inventory)}));
+  p.description=p.description.trim();
+  p.specs=p.specs.trim();
+  p.fulfillment=p.fulfillment.trim();
+  const previous=existing?{...existing}:null;
+  if(existing)Object.assign(existing,p);else state.products.push(p);
+  try{
+    await save((existing?'已更新 ':'已添加 ')+p.sku+'。');
+  }catch{
+    if(existing)Object.assign(existing,previous);else state.products.pop();
+    el('status').textContent=error.message;
+    return;
+  }
+  resetProductForm();
+};
+el('day').onsubmit=async event=>{
+  event.preventDefault();
+  const data=Object.fromEntries(new FormData(event.currentTarget));
+  const previous=state.days.findIndex(d=>d.date===data.date&&d.sku===data.sku);
+  data.unitCost=previous<0?state.products.find(p=>p.sku===data.sku).cost:state.days[previous].unitCost;
+  for(const field of fields)data[field]=Number(data[field]);
+  if(previous<0)state.days.push(data);else state.days[previous]=data;
+  await save(previous<0?'当日数据已保存。':'当日数据已更新。').catch(async error=>{const latest=await commerceApi('admin/catalog');Object.assign(state,latest);render();el('status').textContent=error.message;});
+};
+el('filter').onsubmit=event=>event.preventDefault();
+el('filter').oninput=render;
+function downloadCsv(rows, filename, bom=''){
+  const csv=rows.map(row=>row.map(value=>'"'+String(value).replaceAll('"','""')+'"').join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([bom,csv],{type:'text/csv;charset=utf-8'}));
+  const link=document.createElement('a');link.href=url;link.download=filename;link.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function shopifyRows(products){
+  const headers=['Title','URL handle','Status','Published on online store','Option1 name','Option1 value','SKU','Price','Cost per item'];
+  const drafts=products.filter(p=>p.ready).map(p=>{
+    const handle='commerce-'+Array.from(p.sku,character=>character.codePointAt(0).toString(36)).join('-');
+    return [p.name,handle,'draft','false','Title','Default Title',p.sku,p.price.toFixed(2),p.cost.toFixed(2)];
+  });
+  return [headers,...drafts];
+}
+el('shopify').onclick=()=>{
+  const rows=shopifyRows(state.products);
+  if(rows.length===1){
+    el('status').textContent='请先将至少一个商品标记为待发布。';
+    return;
+  }
+  downloadCsv(rows,'shopify-product-drafts.csv');
+  el('status').textContent='已导出 '+(rows.length-1)+' 个 Shopify 商品草稿。';
+};
+el('csv').onclick=()=>{
+  const csvCell=value=>{
+    const text=String(value);
+    const safe=typeof value==='string'&&/^[=+@\t\r]|^-/.test(text)?"'"+text:text;
+    return '"'+safe.replaceAll('"','""')+'"';
+  };
+  const csv=[headers,...report].map(row=>row.map(csvCell).join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'}));
+  const link=document.createElement('a');link.href=url;link.download='商品经营明细.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+async function renderOrders(){
+  const {orders}=await commerceApi('admin/state');
+  const signed=orders.filter(order=>order.status==='signed');
+  const usd=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value);
+  const revenue=signed.reduce((total,order)=>total+order.price*order.quantity,0);
+  const profit=signed.reduce((total,order)=>total+orderProfit(order),0);
+  el('order-summary').textContent='订单 '+orders.length+' · 已签收 '+signed.length+' · 签收收入 '+usd(revenue)+' · 签收利润 '+usd(profit);
+  const rows=orders.map(order=>{
+    const row=document.createElement('tr');
+    const statuses={new:'待入单',confirmed:'待发货',shipped:'待签收',signed:'已签收',cancelled:'已取消',returned:'已退货'};
+    for(const value of [order.id.slice(0,8),order.market,order.name,order.quantity,usd(order.price*order.quantity+(order.customerShipping??0)),statuses[order.status],order.status==='signed'?usd(orderProfit(order)):'—']){
+      row.insertCell().textContent=value;
+    }
+    const delivery=row.insertCell();
+    const details=document.createElement('details'), summary=document.createElement('summary');
+    summary.textContent=order.tracking?[order.carrier,'运单 '+order.tracking].filter(Boolean).join(' · '):'查看';
+    details.append(summary);
+    const text=document.createElement('p');
+    const address=order.address;
+    text.textContent=address?[address.name,address.phone,address.city,address.address].join(' · '):'早期模拟订单，无收货资料';
+    details.append(text);delivery.append(details);
+    const actions=row.insertCell();
+    const transition=(label,patch)=>{
+      const button=document.createElement('button');button.type='button';button.textContent=label;
+      button.onclick=()=>{
+        const changes=patch();
+        if(!changes)return;
+        commerceApi('admin/order',{method:'PATCH',body:{id:order.id,...changes}})
+          .then(renderOrders).catch(error=>{el('status').textContent=error.message;});
+      };
+      actions.append(button,' ');
+    };
+    if(order.status==='new')transition('确认入单',()=>({status:'confirmed'}));
+    if(order.status==='confirmed'){
+      const tracking=document.createElement('input');
+      tracking.placeholder='模拟运单号';tracking.setAttribute('aria-label','模拟运单号');tracking.maxLength=80;tracking.required=true;
+      const carrier=document.createElement('input');carrier.placeholder='承运商';carrier.maxLength=60;carrier.setAttribute('aria-label','承运商');actions.append(carrier,' ',tracking,' ');
+      transition('登记发货',()=>{
+        if(!tracking.value.trim()){tracking.focus();return null;}
+        return {status:'shipped',tracking:tracking.value.trim(),carrier:carrier.value.trim(),shippedAt:new Date().toISOString()};
+      });
+    }
+    if(order.status==='shipped'){
+      const cost=document.createElement('input');cost.type='number';cost.min='0';cost.step='.01';cost.value=order.cost??'';cost.placeholder='采购单价';cost.setAttribute('aria-label','采购单价 USD');
+      const shipping=document.createElement('input');shipping.type='number';shipping.min='0';shipping.step='.01';shipping.placeholder='配送费';shipping.setAttribute('aria-label','配送费 USD');
+      for(const input of [cost,shipping]){input.required=true;input.style.width='105px';}
+      actions.append(cost,' ',shipping,' ');
+      transition('登记签收',()=>{
+        if(!cost.reportValidity()||!shipping.reportValidity())return null;
+        return {status:'signed',cost:Number(cost.value),shipping:Number(shipping.value)};
+      });
+    }
+    if(order.status==='new'||order.status==='confirmed')transition('取消订单',()=>({status:'cancelled'})); if(order.status==='signed')transition('登记退货',()=>({status:'returned'}));
+    return row;
+  });
+  if(!rows.length){
+    const row=document.createElement('tr');const cell=row.insertCell();cell.colSpan=9;cell.textContent='暂无模拟订单';
+    rows.push(row);
+  }
+  el('order-rows').replaceChildren(...rows);
+}
+el('import-local').onclick=async()=>{
+  const legacy=JSON.parse(localStorage.getItem(key)||'{"products":[],"days":[]}');
+  if(state.products.length||state.days.length){el('status').textContent='服务端已有数据。为避免覆盖，请手动补录差异。';return;}
+  if(!legacy.products.length&&!legacy.days.length){el('status').textContent='当前浏览器没有旧商品或日数据。';return;}
+  state.products=legacy.products;state.days=legacy.days;
+  try{await save('本机商品与日数据已迁移。');}
+  catch(error){state.products=[];state.days=[];el('status').textContent=error.message;}
+};
+render();
+renderOrders();
+</script></html>

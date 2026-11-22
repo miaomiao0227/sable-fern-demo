@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>顾客账户 · Sable &amp; Fern</title><link rel="stylesheet" href="shop.css">
+<style>body{background:#f8f6ef;color:#202a1a;font:16px system-ui}main{max-width:1100px;margin:auto;padding:22px 5%}a{color:#294830}section{margin:16px 0;padding:22px;background:#fffdf6;border:1px solid #cbd2bf}button,input{font:inherit;padding:8px;border-radius:5px;border:1px solid #879b81}button{background:#294830;color:white}li{margin:10px 0}</style>
+<main><header class="shop-nav" id="shop-nav"></header><h1 id="heading"></h1><p id="status" role="status"></p><section id="signin" hidden><a id="login" target="_top"></a></section><section id="profile" hidden><form id="register"><label id="profile-label" for="name"></label> <input id="name" name="name" maxlength="80" required> <button id="save"></button></form><p><a id="logout" target="_top"></a></p></section><section id="history" hidden><h2 id="history-heading"></h2><ul id="orders"></ul></section></main>
+<script src="shop.js"></script><script type="module">
+const el=id=>document.getElementById(id);
+const words={zh:['顾客姓名','保存顾客资料','我的订单','暂无订单'],en:['Customer name','Save profile','My orders','No orders yet'],fr:['Nom du client','Enregistrer le profil','Mes commandes','Aucune commande']};
+const [nameLabel,saveLabel,historyLabel,emptyLabel]=words[locale()];
+initShopNav();el('heading').textContent=translate('account');
+el('login').textContent=translate('login');el('logout').textContent=translate('logout');
+el('profile-label').textContent=nameLabel;el('save').textContent=saveLabel;el('history-heading').textContent=historyLabel;
+el('login').href='/signin-with-chatgpt?return_to=%2Faccount.html';el('logout').href='/signout-with-chatgpt?return_to=%2Fstorefront.html';
+async function render(){
+  const session=await commerceApi('session');el('signin').hidden=session.signedIn;el('profile').hidden=!session.signedIn;
+  if(!session.signedIn)return;
+  el('name').value=session.name||'';el('history').hidden=!session.registered;
+  if(!session.registered)return;
+  const {orders}=await commerceApi('orders');
+  el('orders').replaceChildren();
+  const labels={
+    zh:{new:'待入单',confirmed:'待发货',shipped:'已发货',signed:'已签收',cancelled:'已取消',returned:'已退货'},
+    en:{new:'Received',confirmed:'Confirmed',shipped:'Shipped',signed:'Delivered',cancelled:'Cancelled',returned:'Returned'},
+    fr:{new:'Reçue',confirmed:'Confirmée',shipped:'Expédiée',signed:'Livrée',cancelled:'Annulée',returned:'Retournée'}
+  }[locale()];
+  for(const order of orders){
+    const li=document.createElement('li');li.textContent=[order.id.slice(0,8),order.name,order.sku,'×'+order.quantity,labels[order.status],order.tracking||''].join(' · ');el('orders').append(li);
+  }
+  if(!orders.length){const li=document.createElement('li');li.textContent=emptyLabel;el('orders').append(li);}
+}
+el('register').onsubmit=async event=>{
+  event.preventDefault();
+  try{await commerceApi('profile',{method:'POST',body:{name:el('name').value}});await render();}
+  catch(error){el('status').textContent=error.message;}
+};
+try{await render();}catch(error){el('status').textContent=error.message;}
+</script></html>

@@ -1,0 +1,49 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>购物车与结账 · Sable &amp; Fern</title><link rel="stylesheet" href="shop.css">
+<style>
+*{box-sizing:border-box}body{background:#f8f6ef;color:#202a1a;margin:0;font:16px system-ui,sans-serif}main{max-width:1160px;margin:auto;padding:25px 5% 50px}a{color:#365736}.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:25px}section{padding:22px;background:#fffdf6;border:1px solid #d0d8c8;border-radius:8px}h2{font-size:20px;margin-top:0}label{display:grid;gap:5px;margin-bottom:10px}input,textarea,button{font:inherit;padding:8px;border:1px solid #879b81;border-radius:5px}button{background:#294830;color:white;cursor:pointer}button.secondary{background:white;color:#294830}button:disabled{opacity:.55;cursor:default}article{padding:13px 0;border-top:1px solid #d0d8c8;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}article input{width:78px}.money{font-size:22px;font-weight:700}small,p{color:#495d46}@media(max-width:720px){.layout{grid-template-columns:1fr}}
+</style><main><header class="shop-nav" id="shop-nav"></header><a href="storefront.html" id="back">继续选购</a><h1>购物车与结账</h1><p>模拟 COD · 请使用测试收货资料 · USD</p>
+<div class="layout"><section><h2>购物车商品</h2><div id="items"></div></section>
+<section><h2>收货信息</h2><form id="checkout"><p id="market"></p><label>收件人<input name="name" maxlength="80" required></label><label>联系电话<input name="phone" type="tel" maxlength="40" required></label><label>城市<input name="city" maxlength="80" required></label><label>详细地址<textarea name="address" maxlength="240" required></textarea></label><p id="fees"></p><p class="money" id="total"></p><button id="place">提交模拟 COD 订单</button></form><p id="status" role="status"></p></section></div></main>
+<script src="catalog.js"></script><script src="cart.js"></script><script src="shop.js"></script><script type="module">
+const instant=new URLSearchParams(location.search).get("mode")==="direct"; const el=id=>document.getElementById(id);
+const usd=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value);
+const node=(tag,text)=>{const item=document.createElement(tag);item.textContent=text;return item;};
+function render(){
+  const market=deliveryCountry(),cart=loadCheckoutCart(instant),lines=resolveCart(cart,market);
+
+  el('market').textContent=market?phrase('配送市场')+' · '+phrase(market):phrase('请选择商品');
+  el('items').replaceChildren();
+  for(const [index,line] of lines.entries()){
+    const row=node('article',''), title=node('strong',line.product?.name||line.sku+' · '+phrase('该商品暂不可配送'));
+    const qty=node('input','');qty.type='number';qty.min='1';qty.max='99';qty.value=line.quantity;qty.setAttribute('aria-label',line.sku+' 数量');
+    qty.onchange=()=>{
+      if(qty.checkValidity()&&Number.isInteger(qty.valueAsNumber)){cart.lines[index].quantity=qty.valueAsNumber;saveCheckoutCart(instant,cart.lines);}
+      render();
+    };
+    const remove=node('button',phrase('移除'));remove.type='button';remove.className='secondary';
+    remove.onclick=()=>{saveCheckoutCart(instant,cart.lines.filter((_,i)=>i!==index));render();};
+    row.append(title,node('span',line.product?usd(line.product.price*line.quantity):'—'),qty,remove);
+    el('items').append(row);
+  }
+  if(!lines.length)el('items').append(node('p',phrase('购物车为空。')));
+  const subtotal=lines.reduce((sum,line)=>sum+(line.product?.price??0)*line.quantity,0), fee=deliveryFees[market]??0;
+  el('fees').textContent=phrase('商品')+' '+usd(subtotal)+' · '+phrase('模拟运费')+' '+usd(fee);
+  el('total').textContent=phrase('到付合计')+' '+usd(subtotal+fee);
+  el('place').disabled=!market||!lines.length||lines.some(line=>!line.product);
+}
+el('checkout').onsubmit=async event=>{
+  event.preventDefault();
+  const form=event.currentTarget,cart=loadCheckoutCart(instant),market=deliveryCountry(),lines=resolveCart(cart,market);
+  const address=Object.fromEntries([...new FormData(form)].map(([key,value])=>[key,value.trim()]));
+  if(Object.values(address).some(value=>!value)){el('status').textContent='请完整填写模拟收货信息。';return;}
+  try{
+    el('place').disabled=true;
+    await commerceApi('orders',{method:'POST',body:{id:cart.id,lines:lines.map(({product,...line})=>line),address:{...address,country:market}}});
+    saveCheckoutCart(instant,[]);
+    form.reset();render();
+    el('status').textContent='模拟订单已提交。订单号 '+cart.id.slice(0,8)+'，可在运营台处理。';
+  }catch(error){render();el('status').textContent=error.message+' ';const account=document.createElement('a');account.href='account.html';account.textContent='顾客账户';el('status').append(account);}
+};
+initShopNav(); await loadSharedCatalog(); window.addEventListener('storage',render);
+render();
+</script></html>

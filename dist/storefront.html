@@ -1,0 +1,128 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sable &amp; Fern</title><link rel="stylesheet" href="shop.css">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#faf9f4;color:#202a1a;font:16px system-ui,sans-serif}main{max-width:1420px;margin:auto;padding:20px 4% 55px}a{color:#365736}.home-hero{aspect-ratio:2.65;background:#e4eadb;border-radius:12px;overflow:hidden}.home-hero img{display:block;width:100%;height:100%;object-fit:cover}.sort button{background:#fff;color:#294830;border:1px solid #a2af9e;border-radius:5px;padding:7px 12px;font:inherit;cursor:pointer}.sort button[aria-pressed=true]{background:#294830;color:#fff;border-color:#294830}.section-heading{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.section-heading h2{font-size:24px;margin:0 0 15px}.category-grid,.products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.category-grid a,.card{overflow:hidden;background:white;border:1px solid #dedfd4;border-radius:8px;text-decoration:none}.category-grid img{width:100%;aspect-ratio:2;object-fit:cover;display:block}.category-grid strong{display:block;padding:12px 14px}.card{padding:0;color:#202a1a}.card img,.placeholder{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#e5eadf}.placeholder{display:grid;place-items:center}.card-info{padding:14px}.card h3{margin:0 0 8px;font-size:17px}.card small{color:#4d5d4a}.price{color:#27553d;font-size:19px;font-weight:700;margin:7px 0}.notice{background:#edf0e4;padding:13px 16px;border-radius:6px;color:#304734}.catalog-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:24px}.catalog-layout aside a{display:block;text-decoration:none;padding:9px 11px;border-radius:5px;margin:2px 0}.catalog-layout aside a[aria-current=page]{background:#e5ecdf;color:#263f27;font-weight:700}.sort{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 15px}section{margin:24px 0}[hidden]{display:none!important}:focus-visible{outline:2px solid #497e5e;outline-offset:3px}@media(max-width:960px){.products{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:720px){.home-hero{aspect-ratio:1.65}.catalog-layout{grid-template-columns:1fr}.catalog-layout aside{display:flex;flex-wrap:wrap}.category-grid,.products{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:370px){.products{grid-template-columns:1fr}}
+</style>
+<main><header id="shop-nav" class="shop-nav"></header>
+<section id="home" hidden><div class="home-hero" id="campaign"><img id="banner-image" alt=""></div>
+<section><div class="section-heading"><h2 id="recommended"></h2><a id="all-categories" href="?view=categories"></a></div><div class="category-grid" id="category-tiles"></div></section></section>
+<section id="delivery" hidden><h1 id="delivery-heading"></h1><p id="delivery-text"></p></section>
+<section id="listing" hidden><div class="section-heading"><h2 id="listing-title"></h2><a id="all-products" href="?view=products"></a></div>
+<p id="notice" class="notice" role="status" hidden></p><div id="catalog-layout"><aside id="categories" hidden></aside><div><div id="sort" class="sort" hidden></div><div id="items" class="products"></div></div></div></section></main>
+<script src="catalog.js"></script><script src="shop.js"></script><script type="module">
+const el=id=>document.getElementById(id);
+initShopNav();
+const market=deliveryCountry(), query=new URLSearchParams(location.search);
+const categories=['tech','home','kitchen','auto'];
+const view=query.has('q')?'products':query.get('view')||(query.has('category')?'categories':'home');
+const category=categories.includes(query.get('category'))?query.get('category'):'all';
+const words={
+ zh:['推荐分类','查看全部','甄选商品','全部商品','综合','销量','价格','新品','暂无符合条件的商品。','选择收货国家后可查看运费，结账时确认配送地址。','配送说明','样例销量','签收件数'],
+ en:['Shop by category','View all','Selected products','All products','Featured','Best sellers','Price','New arrivals','No matching products.','Choose a shipping country to see delivery fees at checkout.','Delivery','Sample sales','Delivered'],
+ fr:['Catégories','Tout voir','Notre sélection','Tous les produits','Sélection','Meilleures ventes','Prix','Nouveautés','Aucun produit correspondant.','Choisissez le pays de livraison pour voir les frais de livraison.','Livraison','Ventes de démonstration','Livrés']
+}[locale()];
+const banners=[
+  {image:photos['ZW-101'],position:'center 50%'},
+  {image:newSamples[1].image,position:'center 53%'},
+  {image:newSamples[3].image,position:'center 56%'}
+];
+const make=(tag,text='')=>{const item=document.createElement(tag);item.textContent=text;return item;};
+function categoryLink(id){
+  return 'storefront.html?'+new URLSearchParams({view:'categories',category:id});
+}
+function image(src,alt){
+  const img=make('img');img.alt=alt;img.loading='lazy';
+  img.onerror=()=>{const empty=make('span',phrase('图片暂不可用'));empty.className='placeholder';img.replaceWith(empty);};
+  img.src=src;return img;
+}
+function startCarousel(){
+  const image=el('banner-image'), campaign=el('campaign');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)');
+  let index=0,timer;
+  function renderBanner(){
+    const item=banners[index];
+    image.style.objectPosition=item.position;
+    image.src=item.image;
+  }
+  function stop(){clearInterval(timer);}
+  function restart(){
+    stop();
+    if(!reduce.matches&&!document.hidden&&!campaign.matches(':hover')){
+      timer=setInterval(()=>{index=(index+1)%banners.length;renderBanner();},6500);
+    }
+  }
+  campaign.onpointerenter=stop;
+  campaign.onpointerleave=restart;
+  document.addEventListener('visibilitychange',restart);
+  reduce.addEventListener('change',restart);
+  renderBanner();restart();
+}
+const home=view==='home';
+el('home').hidden=!home;el('delivery').hidden=view!=='delivery';el('listing').hidden=view==='delivery';
+el('delivery-heading').textContent=words[10];el('delivery-text').textContent=words[9];
+el('recommended').textContent=words[0];el('all-categories').textContent=words[1];
+el('listing-title').textContent=home?words[2]:category==='all'?words[3]:translate(category);
+el('all-products').hidden=!home;el('all-products').textContent=words[1];
+if(home){
+  startCarousel();
+  const categoryPhotos=[photos['ZW-101'],newSamples[1].image,newSamples[3].image,newSamples[4].image];
+  categories.forEach((id,index)=>{
+    const link=make('a');link.href=categoryLink(id);
+    link.append(image(categoryPhotos[index],''),make('strong',translate(id)));el('category-tiles').append(link);
+  });
+}
+if(view==='categories'){
+  el('categories').hidden=false;el('catalog-layout').className='catalog-layout';
+  for(const id of ['all',...categories]){
+    const link=make('a',translate(id));link.href=categoryLink(id);
+    if(id===category)link.setAttribute('aria-current','page');
+    el('categories').append(link);
+  }
+}
+function render(catalog,sort){
+  const terms=(query.get('q')||'').trim().toLowerCase();
+  const counts=window.sharedSales?.[market]||{};
+  const sold=p=>p.reference?p.sampleSales||0:counts[p.sku]||0;
+  const minimum=p=>p.variants?.length?Math.min(...p.variants.map(option=>option.price)):p.price;
+  let products=catalog.filter(p=>(category==='all'||p.category===category)&&(!terms||[p.name,p.sku,p.localizedNames?.[locale()]].some(value=>value?.toLowerCase().includes(terms))));
+  if(sort==='sold')products.sort((a,b)=>sold(b)-sold(a));
+  if(sort==='low'||sort==='high')products.sort((a,b)=>(minimum(a)-minimum(b))*(sort==='high'?-1:1));
+  if(sort==='new')products.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  if(home)products=products.slice(0,8);
+  el('items').replaceChildren(...products.map(p=>{
+    const item=translatedProduct(p), link=make('a');link.href=detailUrl(p.sku);link.className='card';
+    if(p.image)link.append(image(p.image,''));
+    else{const empty=make('span',phrase('暂无图片'));empty.className='placeholder';link.append(empty);}
+    const details=make('div');details.className='card-info';
+    const price=make('div',displayMoney(minimum(p)));price.className='price';
+    details.append(make('h3',item.name),price,make('small',(p.reference?words[11]:words[12])+' '+sold(p)));
+    link.append(details);return link;
+  }));
+  const notice=el('notice');
+  notice.hidden=!!products.length;
+  notice.textContent=market?words[8]:phrase('请在顶部选择收货地址所在的国家，以查看可购买的商品。');
+}
+if(view!=='delivery'){
+  try{await loadSharedCatalog();}
+  catch{el('notice').hidden=false;el('notice').textContent='商品加载失败，请刷新重试。';}
+  if(window.sharedProducts){
+    const catalog=listedProducts(market);
+    let sort='featured';
+    if(!home){
+      const sorting=el('sort');
+      sorting.hidden=false;
+      for(const [value,index] of [['featured',4],['sold',5],['price',6],['new',7]]){
+        const button=make('button',words[index]);button.type='button';button.setAttribute('aria-pressed',String(value===sort));
+        button.onclick=()=>{
+          sort=value==='price'?(sort==='low'?'high':'low'):value;
+          for(const item of sorting.children)item.setAttribute('aria-pressed',String(item===button));
+          if(value==='price')button.textContent=words[index]+(sort==='low'?' ↑':' ↓');
+          else sorting.children[2].textContent=words[6];
+          render(catalog,sort);
+        };
+        sorting.append(button);
+      }
+    }
+    render(catalog,sort);
+  }
+}
+</script></html>

@@ -1,0 +1,10 @@
+dist/server/
+
+/pages-dist/
+/.wrangler/
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+*.pem
+*.key
